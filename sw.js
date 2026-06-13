@@ -1,4 +1,4 @@
-const CACHE = 'generator-log-v2';
+const CACHE = 'generator-log-v4';
 const ASSETS = [
   './',
   './index.html',
