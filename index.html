@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0e0f12">
+<link rel="manifest" href="manifest.json">
+<title>Лог генератора</title>
+<style>
+  :root {
+    --bg: #0e0f12;
+    --panel: #181a1f;
+    --border: #2a2d35;
+    --text: #e4e6eb;
+    --muted: #8a8f99;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --accent: #3aa0ff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 { font-size: 18px; margin: 0 0 16px; font-weight: 600; }
+  .status {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .status-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .status-value { font-size: 22px; font-weight: 700; }
+  .status-value.on { color: var(--green); }
+  .status-value.off { color: var(--muted); }
+  .runtime { font-size: 14px; color: var(--accent); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  button.action {
+    width: 100%;
+    border: none;
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: filter .15s;
+    touch-action: manipulation;
+  }
+  button.action:active { filter: brightness(1.2); }
+  button.start { background: var(--green); }
+  button.stop { background: var(--red); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  th, td {
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.dur { color: var(--accent); font-weight: 600; }
+  td.running { color: var(--green); }
+  .controls { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .controls button {
+    flex: 1;
+    min-width: 90px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .controls button:active { background: var(--border); }
+  .empty { color: var(--muted); text-align: center; padding: 24px 0; font-size: 13px; }
+  .del { color: var(--red); cursor: pointer; font-size: 18px; padding: 0 6px; }
+  #fileInput { display: none; }
+</style>
+</head>
+<body>
+  <h1>Лог роботи генератора</h1>
+
+  <div class="status">
+    <div class="status-label">Стан</div>
+    <div id="stateValue" class="status-value off">Вимкнено</div>
+    <div id="runtimeLive" class="runtime"></div>
+  </div>
+
+  <button id="toggleBtn" class="action start">Запуск</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Увімкнено</th>
+        <th>Вимкнено</th>
+        <th>Тривалість</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="logBody"></tbody>
+  </table>
+  <div id="emptyMsg" class="empty">Записів ще немає</div>
+
+  <div class="controls">
+    <button id="exportCsvBtn">Експорт CSV</button>
+    <button id="exportJsonBtn">Бекап JSON</button>
+    <button id="importBtn">Імпорт JSON</button>
+    <button id="clearBtn">Очистити</button>
+  </div>
+  <input type="file" id="fileInput" accept="application/json,.json">
+
+<script>
+/* ---------- IndexedDB шар ---------- */
+const DB_NAME = 'generatorDB';
+const STORE = 'entries';
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+function tx(mode) { return db.transaction(STORE, mode).objectStore(STORE); }
+function dbGetAll() {
+  return new Promise((res, rej) => {
+    const r = tx('readonly').getAll();
+    r.onsuccess = () => res(r.result.sort((a,b)=>a.start-b.start));
+    r.onerror = () => rej(r.error);
+  });
+}
+function dbAdd(entry) {
+  return new Promise((res, rej) => {
+    const r = tx('readwrite').add(entry);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function dbPut(entry) {
+  return new Promise((res, rej) => {
+    const r = tx('readwrite').put(entry);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function dbDelete(id) {
+  return new Promise((res, rej) => {
+    const r = tx('readwrite').delete(id);
+    r.onsuccess = () => res();
+    r.onerror = () => rej(r.error);
+  });
+}
+function dbClear() {
+  return new Promise((res, rej) => {
+    const r = tx('readwrite').clear();
+    r.onsuccess = () => res();
+    r.onerror = () => rej(r.error);
+  });
+}
+
+/* ---------- Стан і утиліти ---------- */
+let entries = [];
+let liveTimer = null;
+
+function fmtDateTime(ts) {
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, '0');
+  return `${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function fmtDuration(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const p = n => String(n).padStart(2, '0');
+  return `${p(h)}:${p(m)}:${p(sec)}`;
+}
+function isRunning() {
+  return entries.length > 0 && entries[entries.length - 1].stop == null;
+}
+
+/* ---------- Рендер ---------- */
+function render() {
+  const body = document.getElementById('logBody');
+  const empty = document.getElementById('emptyMsg');
+  body.innerHTML = '';
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i];
+    const running = e.stop == null;
+    const durCell = running
+      ? `<td class="running">в роботі</td>`
+      : `<td class="dur">${fmtDuration(e.stop - e.start)}</td>`;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      `<td>${fmtDateTime(e.start)}</td>` +
+      `<td>${running ? '—' : fmtDateTime(e.stop)}</td>` +
+      durCell +
+      `<td><span class="del" data-id="${e.id}">×</span></td>`;
+    body.appendChild(tr);
+  }
+  empty.style.display = entries.length ? 'none' : 'block';
+  body.querySelectorAll('.del').forEach(el => {
+    el.onclick = async () => {
+      if (confirm('Видалити цей запис?')) {
+        await dbDelete(Number(el.dataset.id));
+        entries = await dbGetAll();
+        render(); updateStatus();
+      }
+    };
+  });
+}
+
+function updateStatus() {
+  const sv = document.getElementById('stateValue');
+  const btn = document.getElementById('toggleBtn');
+  const live = document.getElementById('runtimeLive');
+  if (isRunning()) {
+    sv.textContent = 'Увімкнено';
+    sv.className = 'status-value on';
+    btn.textContent = 'Стоп';
+    btn.className = 'action stop';
+    startLive();
+  } else {
+    sv.textContent = 'Вимкнено';
+    sv.className = 'status-value off';
+    btn.textContent = 'Запуск';
+    btn.className = 'action start';
+    stopLive();
+    live.textContent = '';
+  }
+}
+function startLive() {
+  stopLive();
+  const tick = () => {
+    const e = entries[entries.length - 1];
+    if (e && e.stop == null) {
+      document.getElementById('runtimeLive').textContent = fmtDuration(Date.now() - e.start);
+    }
+  };
+  tick();
+  liveTimer = setInterval(tick, 1000);
+}
+function stopLive() { if (liveTimer) { clearInterval(liveTimer); liveTimer = null; } }
+
+/* ---------- Дії ---------- */
+document.getElementById('toggleBtn').onclick = async () => {
+  if (isRunning()) {
+    const e = entries[entries.length - 1];
+    e.stop = Date.now();
+    await dbPut(e);
+  } else {
+    await dbAdd({ start: Date.now(), stop: null });
+  }
+  entries = await dbGetAll();
+  render(); updateStatus();
+};
+
+document.getElementById('clearBtn').onclick = async () => {
+  if (confirm('Видалити всі записи?')) {
+    await dbClear();
+    entries = [];
+    render(); updateStatus();
+  }
+};
+
+document.getElementById('exportCsvBtn').onclick = () => {
+  let csv = 'Увімкнено;Вимкнено;Тривалість\n';
+  entries.forEach(e => {
+    csv += `${fmtDateTime(e.start)};${e.stop ? fmtDateTime(e.stop) : ''};${e.stop ? fmtDuration(e.stop - e.start) : ''}\n`;
+  });
+  downloadBlob('\ufeff' + csv, 'generator-log.csv', 'text/csv;charset=utf-8;');
+};
+
+document.getElementById('exportJsonBtn').onclick = () => {
+  downloadBlob(JSON.stringify(entries, null, 2), 'generator-backup.json', 'application/json');
+};
+
+document.getElementById('importBtn').onclick = () => document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange = async (ev) => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!Array.isArray(data)) throw new Error('Невірний формат');
+    if (!confirm(`Імпортувати ${data.length} записів? Поточні дані будуть замінені.`)) return;
+    await dbClear();
+    for (const e of data) {
+      await dbAdd({ start: e.start, stop: e.stop ?? null });
+    }
+    entries = await dbGetAll();
+    render(); updateStatus();
+  } catch (err) {
+    alert('Помилка імпорту: ' + err.message);
+  }
+  ev.target.value = '';
+};
+
+function downloadBlob(content, name, type) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ---------- Старт ---------- */
+(async () => {
+  db = await openDB();
+  entries = await dbGetAll();
+  render(); updateStatus();
+})();
+
+/* ---------- Service worker ---------- */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
