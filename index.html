@@ -8,88 +8,79 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Лог генератора</title>
 <style>
-  :root {
-    --bg: #0e0f12; --panel: #181a1f; --border: #2a2d35;
-    --text: #e4e6eb; --muted: #8a8f99; --green: #2ecc71;
-    --red: #e74c3c; --accent: #3aa0ff; --amber: #f0a92e;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 16px; padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom)); -webkit-font-smoothing: antialiased; }
-  h1 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
-  .sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
-  .sub b { color: var(--text); }
-  /* банер підключення файлу */
-  .filebar { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 14px; flex-wrap: wrap; }
-  .filebar .fdot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
-  .filebar.connected .fdot { background: var(--green); }
-  .filebar.connected.dirty .fdot { background: var(--amber); }
-  .filebar .ftext { flex: 1; min-width: 140px; font-size: 12px; color: var(--muted); }
-  .filebar.connected .ftext b { color: var(--text); }
-  .filebar button { background: var(--accent); border: none; color: #fff; border-radius: 8px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
-  .filebar button.sec { background: var(--border); color: var(--text); }
-  .filebar button:active { filter: brightness(1.2); }
-  .status { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; text-align: center; }
-  .status-label { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-  .status-value { font-size: 22px; font-weight: 700; }
-  .status-value.on { color: var(--green); }
-  .status-value.off { color: var(--muted); }
-  .runtime { font-size: 14px; color: var(--accent); margin-top: 6px; font-variant-numeric: tabular-nums; }
-  button.action { width: 100%; border: none; border-radius: 12px; padding: 18px; font-size: 18px; font-weight: 700; color: #fff; cursor: pointer; margin-bottom: 18px; transition: filter .15s; touch-action: manipulation; }
-  button.action:active { filter: brightness(1.2); }
-  button.start { background: var(--green); }
-  button.stop { background: var(--red); }
-  .tabs { display: flex; gap: 4px; margin-bottom: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; border-bottom: 1px solid var(--border); }
-  .tab { flex: 0 0 auto; background: none; border: none; color: var(--muted); font-size: 14px; font-weight: 600; padding: 10px 14px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; touch-action: manipulation; }
-  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
-  .panel { display: none; }
-  .panel.active { display: block; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
-  th, td { padding: 10px 6px; text-align: left; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; }
-  td.dur { color: var(--accent); font-weight: 600; }
-  td.running { color: var(--green); }
-  td.actions { text-align: right; white-space: nowrap; }
-  .icon-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 4px 6px; color: var(--muted); touch-action: manipulation; }
-  .icon-btn.del { color: var(--red); }
-  .icon-btn.edit { color: var(--accent); }
-  .empty { color: var(--muted); text-align: center; padding: 24px 0; font-size: 13px; }
-  .section-sum { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
-  .section-sum b { color: var(--text); }
-  .controls { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-  .controls button { flex: 1; min-width: 110px; background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px; font-size: 13px; cursor: pointer; touch-action: manipulation; }
-  .controls button:active { background: var(--border); }
-  #fileInput { display: none; }
-  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
-  .modal-bg.open { display: flex; }
-  .modal { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; width: 100%; max-width: 360px; }
-  .modal h2 { font-size: 16px; margin: 0 0 16px; }
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-  .field input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 10px; font-size: 15px; }
-  .field .hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
-  .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
-  .modal-actions button { flex: 1; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
-  .btn-cancel { background: var(--border); color: var(--text); }
-  .btn-save { background: var(--accent); color: #fff; }
+  :root { --bg:#0e0f12; --panel:#181a1f; --border:#2a2d35; --text:#e4e6eb; --muted:#8a8f99; --green:#2ecc71; --red:#e74c3c; --accent:#3aa0ff; --amber:#f0a92e; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font-family:-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); padding:16px; padding-top:max(16px,env(safe-area-inset-top)); padding-bottom:max(16px,env(safe-area-inset-bottom)); -webkit-font-smoothing:antialiased; }
+  h1 { font-size:18px; margin:0 0 14px; font-weight:600; }
+  .status { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:12px; text-align:center; }
+  .status-label { font-size:13px; color:var(--muted); margin-bottom:6px; }
+  .status-value { font-size:22px; font-weight:700; }
+  .status-value.on { color:var(--green); }
+  .status-value.off { color:var(--muted); }
+  .runtime { font-size:14px; color:var(--accent); margin-top:6px; font-variant-numeric:tabular-nums; }
+  button.action { width:100%; border:none; border-radius:12px; padding:18px; font-size:18px; font-weight:700; color:#fff; cursor:pointer; margin-bottom:12px; transition:filter .15s; touch-action:manipulation; }
+  button.action:active { filter:brightness(1.2); }
+  button.start { background:var(--green); }
+  button.stop { background:var(--red); }
+  /* банер бекапу */
+  .backupbar { display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:18px; }
+  .backupbar .bdot { width:10px; height:10px; border-radius:50%; background:var(--green); flex-shrink:0; }
+  .backupbar.warn { border-color:var(--amber); }
+  .backupbar.warn .bdot { background:var(--amber); }
+  .backupbar.urgent { border-color:var(--red); }
+  .backupbar.urgent .bdot { background:var(--red); }
+  .backupbar .btext { flex:1; font-size:12px; color:var(--muted); }
+  .backupbar.warn .btext, .backupbar.urgent .btext { color:var(--text); }
+  .backupbar button { background:var(--accent); border:none; color:#fff; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer; touch-action:manipulation; white-space:nowrap; }
+  .backupbar button:active { filter:brightness(1.2); }
+  .tabs { display:flex; gap:4px; margin-bottom:16px; overflow-x:auto; -webkit-overflow-scrolling:touch; border-bottom:1px solid var(--border); }
+  .tab { flex:0 0 auto; background:none; border:none; color:var(--muted); font-size:14px; font-weight:600; padding:10px 14px; cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; touch-action:manipulation; }
+  .tab.active { color:var(--text); border-bottom-color:var(--accent); }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  table { width:100%; border-collapse:collapse; font-size:13px; font-variant-numeric:tabular-nums; }
+  th,td { padding:10px 6px; text-align:left; border-bottom:1px solid var(--border); }
+  th { color:var(--muted); font-weight:600; font-size:12px; }
+  td.dur { color:var(--accent); font-weight:600; }
+  td.running { color:var(--green); }
+  td.actions { text-align:right; white-space:nowrap; }
+  .icon-btn { background:none; border:none; cursor:pointer; font-size:16px; padding:4px 6px; color:var(--muted); touch-action:manipulation; }
+  .icon-btn.del { color:var(--red); }
+  .icon-btn.edit { color:var(--accent); }
+  .empty { color:var(--muted); text-align:center; padding:24px 0; font-size:13px; }
+  .section-sum { font-size:13px; color:var(--muted); margin:0 0 12px; }
+  .section-sum b { color:var(--text); }
+  .controls { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+  .controls button { flex:1; min-width:110px; background:var(--panel); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:10px; font-size:13px; cursor:pointer; touch-action:manipulation; }
+  .controls button:active { background:var(--border); }
+  #fileInput { display:none; }
+  .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; align-items:center; justify-content:center; padding:16px; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:20px; width:100%; max-width:360px; }
+  .modal h2 { font-size:16px; margin:0 0 16px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .field input { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:10px; font-size:15px; }
+  .field .hint { font-size:11px; color:var(--muted); margin-top:4px; }
+  .modal-actions { display:flex; gap:8px; margin-top:18px; }
+  .modal-actions button { flex:1; border:none; border-radius:8px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; touch-action:manipulation; }
+  .btn-cancel { background:var(--border); color:var(--text); }
+  .btn-save { background:var(--accent); color:#fff; }
 </style>
 </head>
 <body>
   <h1>Лог роботи генератора</h1>
-  <div class="sub" id="modeSub">База: <b>файл на диску</b></div>
-
-  <div class="filebar" id="fileBar">
-    <div class="fdot"></div>
-    <div class="ftext" id="fileText">Файл бази не підключено</div>
-    <button id="connectBtn">Підключити файл</button>
-  </div>
-
   <div class="status">
     <div class="status-label">Стан</div>
     <div id="stateValue" class="status-value off">Вимкнено</div>
     <div id="runtimeLive" class="runtime"></div>
   </div>
   <button id="toggleBtn" class="action start">Запуск</button>
-
+  <div class="backupbar" id="backupBar">
+    <div class="bdot"></div>
+    <div class="btext" id="backupText">Дані збережено</div>
+    <button id="backupBtn">Бекап</button>
+  </div>
   <div class="tabs">
     <button class="tab active" data-tab="today">Сьогодні</button>
     <button class="tab" data-tab="all">Усі записи</button>
@@ -107,24 +98,14 @@
     <table><thead><tr><th>Увімкнено</th><th>Вимкнено</th><th>Трив.</th><th></th></tr></thead><tbody id="bodyAll"></tbody></table>
     <div class="empty" id="emptyAll">Записів ще немає</div>
   </div>
-  <div class="panel" id="panel-days">
-    <table><thead><tr><th>День</th><th>Запусків</th><th>Час роботи</th></tr></thead><tbody id="bodyDays"></tbody></table>
-    <div class="empty" id="emptyDays">Немає даних</div>
-  </div>
-  <div class="panel" id="panel-weeks">
-    <table><thead><tr><th>Тиждень</th><th>Запусків</th><th>Час роботи</th></tr></thead><tbody id="bodyWeeks"></tbody></table>
-    <div class="empty" id="emptyWeeks">Немає даних</div>
-  </div>
-  <div class="panel" id="panel-months">
-    <table><thead><tr><th>Місяць</th><th>Запусків</th><th>Час роботи</th></tr></thead><tbody id="bodyMonths"></tbody></table>
-    <div class="empty" id="emptyMonths">Немає даних</div>
-  </div>
-
+  <div class="panel" id="panel-days"><table><thead><tr><th>День</th><th>Запусків</th><th>Час роботи</th></tr></thead><tbody id="bodyDays"></tbody></table><div class="empty" id="emptyDays">Немає даних</div></div>
+  <div class="panel" id="panel-weeks"><table><thead><tr><th>Тиждень</th><th>Запусків</th><th>Час роботи</th></tr></thead><tbody id="bodyWeeks"></tbody></table><div class="empty" id="emptyWeeks">Немає даних</div></div>
+  <div class="panel" id="panel-months"><table><thead><tr><th>Місяць</th><th>Запусків</th><th>Час роботи</th></tr></thead><tbody id="bodyMonths"></tbody></table><div class="empty" id="emptyMonths">Немає даних</div></div>
   <div class="controls">
-    <button id="exportCsvBtn">Експорт копії</button>
+    <button id="exportCsvBtn">Експорт CSV</button>
+    <button id="importBtn">Відновити з бекапу</button>
   </div>
-  <input type="file" id="fileInput" accept=".csv,text/csv">
-
+  <input type="file" id="fileInput" accept="application/json,.json">
   <div class="modal-bg" id="modalBg">
     <div class="modal">
       <h2>Редагувати запис</h2>
@@ -134,12 +115,19 @@
     </div>
   </div>
 <script>
-/* ====== режим: fsa (File System Access) або manual (fallback) ====== */
-const FSA = ('showOpenFilePicker' in window) && ('showSaveFilePicker' in window);
-let fileHandle = null;   // FileSystemFileHandle (режим fsa)
-let entries = [];        // {id,start,stop}
-let liveTimer=null, editingId=null, nextId=1, dirty=false;
+const DB_NAME='generatorDB',STORE='entries',META='meta';let db=null;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,2);r.onupgradeneeded=(ev)=>{const d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains(META))d.createObjectStore(META,{keyPath:'k'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function tx(s,m){return db.transaction(s,m).objectStore(s);}
+function dbGetAll(){return new Promise((res,rej)=>{const r=tx(STORE,'readonly').getAll();r.onsuccess=()=>res(r.result.sort((a,b)=>a.start-b.start));r.onerror=()=>rej(r.error);});}
+function dbAdd(e){return new Promise((res,rej)=>{const r=tx(STORE,'readwrite').add(e);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function dbPut(e){return new Promise((res,rej)=>{const r=tx(STORE,'readwrite').put(e);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function dbDelete(id){return new Promise((res,rej)=>{const r=tx(STORE,'readwrite').delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});}
+function dbClear(){return new Promise((res,rej)=>{const r=tx(STORE,'readwrite').clear();r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});}
+function metaGet(k){return new Promise((res,rej)=>{const r=tx(META,'readonly').get(k);r.onsuccess=()=>res(r.result?r.result.v:null);r.onerror=()=>rej(r.error);});}
+function metaSet(k,v){return new Promise((res,rej)=>{const r=tx(META,'readwrite').put({k,v});r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});}
 
+let entries=[],liveTimer=null,editingId=null;
+let unsaved=0, lastBackup=null; // лічильник змін з останнього бекапу + дата
 const p2=n=>String(n).padStart(2,'0');
 function fmtDateTime(ts){const d=new Date(ts);return `${p2(d.getDate())}.${p2(d.getMonth()+1)}.${d.getFullYear()} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;}
 function fmtDuration(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return `${p2(h)}:${p2(m)}:${p2(sec)}`;}
@@ -153,56 +141,25 @@ function weekKey(ts){const w=isoWeek(ts);return `${w.year}-W${p2(w.week)}`;}
 function weekLabel(ts){const d=new Date(ts);const day=(d.getDay()+6)%7;const mon=new Date(d);mon.setDate(d.getDate()-day);mon.setHours(0,0,0,0);const sun=new Date(mon);sun.setDate(mon.getDate()+6);const w=isoWeek(ts);return `Тиж. ${w.week}: ${p2(mon.getDate())}.${p2(mon.getMonth()+1)}–${p2(sun.getDate())}.${p2(sun.getMonth()+1)}`;}
 function isToday(ts){return dayKey(ts)===dayKey(Date.now());}
 
-/* ====== CSV ====== */
-function buildCSV(){let csv='start_ms;stop_ms;Увімкнено;Вимкнено;Тривалість\n';for(const e of entries){csv+=`${e.start};${e.stop!=null?e.stop:''};${fmtDateTime(e.start)};${e.stop!=null?fmtDateTime(e.stop):''};${e.stop!=null?fmtDuration(e.stop-e.start):''}\n`;}return '\ufeff'+csv;}
-function parseCSV(text){if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);const lines=text.split(/\r?\n/).filter(l=>l.trim()!=='');const out=[];const startIdx=lines.length&&/start_ms/i.test(lines[0])?1:0;for(let i=startIdx;i<lines.length;i++){const cols=lines[i].split(';');const start=Number(cols[0]);if(!Number.isFinite(start)||start<=0)continue;const stopRaw=(cols[1]||'').trim();const stop=stopRaw===''?null:Number(stopRaw);out.push({id:nextId++,start,stop:Number.isFinite(stop)?stop:null});}out.sort((a,b)=>a.start-b.start);return out;}
-
-/* ====== збереження ====== */
-// у режимі fsa — пише прямо у підключений файл; у manual — вмикає "брудний" індикатор
-async function persist(){
-  if(FSA && fileHandle){
-    try{
-      const w=await fileHandle.createWritable();
-      await w.write(buildCSV());
-      await w.close();
-      dirty=false;
-    }catch(err){
-      console.error(err);
-      dirty=true;
-      alert('Не вдалося записати у файл: '+err.message+'\nМожливо, втрачено дозвіл. Підключи файл заново.');
-    }
+/* банер бекапу */
+async function bumpUnsaved(){unsaved++;await metaSet('unsaved',unsaved);updateBackupBar();}
+function updateBackupBar(){
+  const bar=document.getElementById('backupBar'),txt=document.getElementById('backupText');
+  bar.classList.remove('warn','urgent');
+  if(unsaved===0){
+    txt.innerHTML = lastBackup ? `Бекап актуальний · останній ${fmtDateTime(lastBackup)}` : 'Бекапу ще не було';
+    if(!lastBackup) bar.classList.add('warn');
+  }else if(unsaved<10){
+    bar.classList.add('warn');
+    txt.innerHTML = `Без бекапу: <b>${unsaved}</b> ${unsaved===1?'зміна':'змін'}. Раджу зробити бекап.`;
   }else{
-    dirty=true; // manual режим: позначаємо, що треба зберегти вручну
-  }
-  updateFileBar();
-}
-
-/* ====== банер файлу ====== */
-function updateFileBar(){
-  const bar=document.getElementById('fileBar'),txt=document.getElementById('fileText'),btn=document.getElementById('connectBtn');
-  if(FSA){
-    if(fileHandle){
-      bar.classList.add('connected');
-      bar.classList.toggle('dirty',dirty);
-      txt.innerHTML=dirty?`<b>${fileHandle.name}</b> — збереження…`:`Підключено: <b>${fileHandle.name}</b> · автозбереження`;
-      btn.textContent='Змінити файл';
-    }else{
-      bar.classList.remove('connected','dirty');
-      txt.textContent='Файл бази не підключено';
-      btn.textContent='Підключити файл';
-    }
-  }else{
-    // manual режим
-    bar.classList.toggle('connected',!dirty);
-    bar.classList.toggle('dirty',dirty);
-    txt.textContent=dirty?'Є незбережені зміни — натисни «Зберегти»':'Усі зміни збережені у файл';
-    btn.textContent=dirty?'Зберегти':'Завантажити базу';
+    bar.classList.add('urgent');
+    txt.innerHTML = `Без бекапу: <b>${unsaved}</b> змін! Зроби бекап, щоб не втратити.`;
   }
 }
 
-/* ====== рендер ====== */
 function entryRow(e){const running=e.stop==null;const tr=document.createElement('tr');const durCell=running?`<td class="running">в роботі</td>`:`<td class="dur">${fmtDuration(e.stop-e.start)}</td>`;tr.innerHTML=`<td>${fmtDateTime(e.start)}</td><td>${running?'—':fmtDateTime(e.stop)}</td>`+durCell+`<td class="actions"><button class="icon-btn edit" data-edit="${e.id}">✎</button><button class="icon-btn del" data-del="${e.id}">×</button></td>`;return tr;}
-function bindRowButtons(c){c.querySelectorAll('[data-del]').forEach(b=>{b.onclick=async()=>{if(confirm('Видалити цей запис?')){entries=entries.filter(x=>x.id!==Number(b.dataset.del));renderAll();updateStatus();await persist();}};});c.querySelectorAll('[data-edit]').forEach(b=>{b.onclick=()=>openEdit(Number(b.dataset.edit));});}
+function bindRowButtons(c){c.querySelectorAll('[data-del]').forEach(b=>{b.onclick=async()=>{if(confirm('Видалити цей запис?')){await dbDelete(Number(b.dataset.del));entries=await dbGetAll();renderAll();updateStatus();await bumpUnsaved();}};});c.querySelectorAll('[data-edit]').forEach(b=>{b.onclick=()=>openEdit(Number(b.dataset.edit));});}
 function renderToday(){const body=document.getElementById('bodyToday');body.innerHTML='';const list=entries.filter(e=>isToday(e.start)).sort((a,b)=>b.start-a.start);list.forEach(e=>body.appendChild(entryRow(e)));document.getElementById('emptyToday').style.display=list.length?'none':'block';let total=0;list.forEach(e=>{if(e.stop!=null)total+=e.stop-e.start;});document.getElementById('sumToday').innerHTML=list.length?`Запусків сьогодні: <b>${list.length}</b> · Час роботи: <b>${fmtDuration(total)}</b>`:'';bindRowButtons(body);}
 function renderAllEntries(){const body=document.getElementById('bodyAll');body.innerHTML='';const list=[...entries].sort((a,b)=>b.start-a.start);list.forEach(e=>body.appendChild(entryRow(e)));document.getElementById('emptyAll').style.display=list.length?'none':'block';let total=0;list.forEach(e=>{if(e.stop!=null)total+=e.stop-e.start;});document.getElementById('sumAll').innerHTML=list.length?`Усього записів: <b>${list.length}</b> · Сумарний час: <b>${fmtDuration(total)}</b>`:'';bindRowButtons(body);}
 function aggregate(keyFn,labelFn){const map=new Map();for(const e of entries){if(e.stop==null)continue;const k=keyFn(e.start);if(!map.has(k))map.set(k,{label:labelFn(e.start),count:0,total:0,sortTs:e.start});const o=map.get(k);o.count++;o.total+=e.stop-e.start;if(e.start>o.sortTs)o.sortTs=e.start;}return [...map.values()].sort((a,b)=>b.sortTs-a.sortTs);}
@@ -211,79 +168,24 @@ function renderAll(){renderToday();renderAllEntries();renderAgg('bodyDays','empt
 function updateStatus(){const sv=document.getElementById('stateValue'),btn=document.getElementById('toggleBtn'),live=document.getElementById('runtimeLive');if(isRunning()){sv.textContent='Увімкнено';sv.className='status-value on';btn.textContent='Стоп';btn.className='action stop';startLive();}else{sv.textContent='Вимкнено';sv.className='status-value off';btn.textContent='Запуск';btn.className='action start';stopLive();live.textContent='';}}
 function startLive(){stopLive();const tick=()=>{const e=entries[entries.length-1];if(e&&e.stop==null){document.getElementById('runtimeLive').textContent=fmtDuration(Date.now()-e.start);}};tick();liveTimer=setInterval(tick,1000);}
 function stopLive(){if(liveTimer){clearInterval(liveTimer);liveTimer=null;}}
-
-/* ====== вкладки ====== */
 document.querySelectorAll('.tab').forEach(t=>{t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById('panel-'+t.dataset.tab).classList.add('active');};});
-
-/* ====== пуск/стоп ====== */
-document.getElementById('toggleBtn').onclick=async()=>{
-  if(FSA && !fileHandle){ if(!confirm('Файл бази не підключено — дані не збережуться. Підключити зараз?')){} else { await connectFile(); return; } }
-  if(isRunning()){entries[entries.length-1].stop=Date.now();}else{entries.push({id:nextId++,start:Date.now(),stop:null});}
-  renderAll();updateStatus();await persist();
-};
-
-/* ====== редагування ====== */
+document.getElementById('toggleBtn').onclick=async()=>{if(isRunning()){const e=entries[entries.length-1];e.stop=Date.now();await dbPut(e);}else{await dbAdd({start:Date.now(),stop:null});}entries=await dbGetAll();renderAll();updateStatus();await bumpUnsaved();};
 function tsToInput(ts){const d=new Date(ts);return `${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}T${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;}
 function inputToTs(v){if(!v)return null;const m=v.match(/(\d+)-(\d+)-(\d+)T(\d+):(\d+)(?::(\d+))?/);if(!m)return null;return new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)).getTime();}
 function openEdit(id){const e=entries.find(x=>x.id===id);if(!e)return;editingId=id;document.getElementById('editStart').value=tsToInput(e.start);document.getElementById('editStop').value=e.stop!=null?tsToInput(e.stop):'';document.getElementById('modalBg').classList.add('open');}
 function closeEdit(){document.getElementById('modalBg').classList.remove('open');editingId=null;}
 document.getElementById('editCancel').onclick=closeEdit;
 document.getElementById('modalBg').onclick=(ev)=>{if(ev.target.id==='modalBg')closeEdit();};
-document.getElementById('editSave').onclick=async()=>{const e=entries.find(x=>x.id===editingId);if(!e)return;const startTs=inputToTs(document.getElementById('editStart').value);const stopVal=document.getElementById('editStop').value;const stopTs=stopVal?inputToTs(stopVal):null;if(startTs==null){alert('Вкажи час увімкнення');return;}if(stopTs!=null&&stopTs<startTs){alert('Час вимкнення не може бути раніше за ввімкнення');return;}e.start=startTs;e.stop=stopTs;entries.sort((a,b)=>a.start-b.start);renderAll();updateStatus();closeEdit();await persist();};
-
-/* ====== підключення файлу (fsa) ====== */
-async function connectFile(){
-  if(!FSA) return;
-  try{
-    const [h]=await window.showOpenFilePicker({types:[{description:'CSV',accept:{'text/csv':['.csv']}}],multiple:false});
-    fileHandle=h;
-    const file=await h.getFile();
-    const text=await file.text();
-    entries = text.trim()? parseCSV(text) : [];
-    dirty=false;
-    renderAll();updateStatus();updateFileBar();
-  }catch(err){ if(err.name!=='AbortError') alert('Помилка: '+err.message); }
-}
-async function createFile(){
-  if(!FSA) return;
-  try{
-    const h=await window.showSaveFilePicker({suggestedName:'generator.csv',types:[{description:'CSV',accept:{'text/csv':['.csv']}}]});
-    fileHandle=h; entries=[]; dirty=false;
-    await persist(); renderAll();updateStatus();updateFileBar();
-  }catch(err){ if(err.name!=='AbortError') alert('Помилка: '+err.message); }
-}
-
-/* ====== кнопка банера ====== */
-document.getElementById('connectBtn').onclick=async()=>{
-  if(FSA){
-    // вибір: відкрити наявний чи створити новий
-    const choice=confirm('OK — відкрити наявний generator.csv\nСкасувати — створити новий файл');
-    if(choice) await connectFile(); else await createFile();
-  }else{
-    // manual режим: кнопка або зберігає, або вантажить
-    if(dirty){ manualSave(); } else { document.getElementById('fileInput').click(); }
-  }
-};
-
-/* ====== manual fallback ====== */
-function manualSave(){const blob=new Blob([buildCSV()],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='generator.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);dirty=false;updateFileBar();}
-document.getElementById('fileInput').onchange=async(ev)=>{const file=ev.target.files[0];if(!file)return;if(dirty&&!confirm('Є незбережені зміни. Завантаження бази їх замінить. Продовжити?')){ev.target.value='';return;}try{entries=parseCSV(await file.text());dirty=false;renderAll();updateStatus();updateFileBar();}catch(err){alert('Не вдалося прочитати файл: '+err.message);}ev.target.value='';};
-
-/* ====== експорт копії (працює в обох режимах) ====== */
-document.getElementById('exportCsvBtn').onclick=()=>{const blob=new Blob([buildCSV()],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);const d=new Date();a.download=`generator-copy-${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
-
-/* ====== старт ====== */
-function initMode(){
-  const sub=document.getElementById('modeSub');
-  if(FSA){ sub.innerHTML='База: <b>файл на диску</b> · автозбереження'; }
-  else{
-    sub.innerHTML='База: <b>файл</b> · ручний режим (браузер без підтримки автозапису)';
-    // у manual режимі одразу показуємо кнопку завантаження
-  }
-  updateFileBar();
-}
-window.addEventListener('beforeunload',(e)=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
-renderAll();updateStatus();initMode();
+document.getElementById('editSave').onclick=async()=>{const e=entries.find(x=>x.id===editingId);if(!e)return;const startTs=inputToTs(document.getElementById('editStart').value);const stopVal=document.getElementById('editStop').value;const stopTs=stopVal?inputToTs(stopVal):null;if(startTs==null){alert('Вкажи час увімкнення');return;}if(stopTs!=null&&stopTs<startTs){alert('Час вимкнення не може бути раніше за ввімкнення');return;}e.start=startTs;e.stop=stopTs;await dbPut(e);entries=await dbGetAll();renderAll();updateStatus();closeEdit();await bumpUnsaved();};
+function downloadBlob(content,name,type){const blob=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+/* бекап JSON — скидає лічильник */
+async function doBackup(){const d=new Date();const name=`generator-backup-${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}.json`;downloadBlob(JSON.stringify(entries.map(e=>({start:e.start,stop:e.stop})),null,2),name,'application/json');unsaved=0;lastBackup=Date.now();await metaSet('unsaved',0);await metaSet('lastBackup',lastBackup);updateBackupBar();}
+document.getElementById('backupBtn').onclick=doBackup;
+document.getElementById('exportCsvBtn').onclick=()=>{let csv='start_ms;stop_ms;Увімкнено;Вимкнено;Тривалість\n';entries.forEach(e=>{csv+=`${e.start};${e.stop!=null?e.stop:''};${fmtDateTime(e.start)};${e.stop!=null?fmtDateTime(e.stop):''};${e.stop!=null?fmtDuration(e.stop-e.start):''}\n`;});downloadBlob('\ufeff'+csv,'generator-log.csv','text/csv;charset=utf-8;');};
+document.getElementById('importBtn').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange=async(ev)=>{const file=ev.target.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data))throw new Error('Невірний формат');if(!confirm(`Відновити ${data.length} записів? Поточні дані будуть замінені.`)){ev.target.value='';return;}await dbClear();for(const e of data)await dbAdd({start:e.start,stop:e.stop??null});entries=await dbGetAll();unsaved=0;lastBackup=Date.now();await metaSet('unsaved',0);await metaSet('lastBackup',lastBackup);renderAll();updateStatus();updateBackupBar();}catch(err){alert('Помилка відновлення: '+err.message);}ev.target.value='';};
+(async()=>{db=await openDB();entries=await dbGetAll();unsaved=(await metaGet('unsaved'))||0;lastBackup=(await metaGet('lastBackup'))||null;renderAll();updateStatus();updateBackupBar();})();
+if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{});}
 </script>
 </body>
 </html>
